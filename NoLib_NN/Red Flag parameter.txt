@@ -1,0 +1,12 @@
+Red Flag parameter:
+
+Green Flag parameter:
+
+1 hidden layer
+8 neurons per hidden layer
+Sigmoid
+30 epoch
+0,2 learning rate
+No schedule
+Classic loss function
+Stochastic

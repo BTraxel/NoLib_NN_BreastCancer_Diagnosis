@@ -8,7 +8,7 @@ class Data:
     def split_train_test(self):
         while(self.Splitpercent < 1 or self.Splitpercent > 100):
             try:
-                self.Splitpercent = int(input("Give a percentage to divide dataset into Train and Test set :"))
+                self.Splitpercent = int(input("Give a percentage to divide dataset into Train and Test set:"))
             except ValueError:
                 print("Input a valid choice please")
 
@@ -24,7 +24,7 @@ class Data:
 
     def get_data(self):
         # Function to load and preprocess data
-        data = pd.read_csv("Data.csv")
+        data = pd.read_csv("../Data.csv")
         print("Dataset size")
         print("Rows {} Columns {}".format(data.shape[0], data.shape[1]))
         print("Columns and data types")

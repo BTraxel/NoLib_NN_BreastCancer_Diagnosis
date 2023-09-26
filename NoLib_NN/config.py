@@ -41,16 +41,24 @@ class Config:
                 print("Input a valid choice please")
         while(True):
             try:
-                self.Learning_rate_schedule = bool(input("Do you want to activate a learning rate schedule (0: No 1: Yes):"))
-                break
+                choice = int(input("Do you want to activate a learning rate schedule (0: No, 1: Yes): "))
+                if choice in [0, 1]:
+                    self.Learning_rate_schedule = bool(choice)
+                    break
+                else:
+                    print("Please enter a valid choice (0 or 1).")
             except ValueError:
                 print("Input a valid choice please")
-        if(self.Learning_rate_schedule == ("True")):
-            while(self.Decay < 0):
+        if self.Learning_rate_schedule:
+            while(True):
                 try:
-                    self.Decay = float(input("Chose your decay constant:"))
+                    self.Decay = float(input("Choose your decay constant: "))
+                    if self.Decay >= 0:
+                        break
+                    else:
+                        print("Please enter a non-negative value for the decay constant.")
                 except ValueError:
-                    print("Input a valid choice please")
+                    print("Please enter a valid number for the decay constant.")
         while(self.Type_loss_function < 1 or self.Type_loss_function > 4):
             try:
                 self.Type_loss_function = int(input("Chose your loss function (1: Normal 2: Squared error 3: Squarred error/2 4: Absolute error):"))
