@@ -7,6 +7,12 @@ from tqdm import tqdm
 
 class NeuralNetwork:
     def __init__(self, config):
+        """
+        Initialize a NeuralNetwork object.
+
+        Args:
+            config (object): Configuration settings for the neural network.
+        """
         self.config = config
         self.trained = False
 
@@ -31,7 +37,14 @@ class NeuralNetwork:
         self.Update_Hiden_BatchpCopy = self.Update_Hiden_Batchp.copy()
 
     def train(self, data):
-        # Train the neural network
+        """
+        Train the neural network.
+
+        This function trains the neural network using the configured gradient descent method.
+
+        Args:
+            data (object): Training data for the neural network.
+        """
         self.data = data
         self.reset()
         if (self.config.Type_gradient_descent == 1):  # Stochastic
@@ -46,14 +59,28 @@ class NeuralNetwork:
 
     
     def test(self, data):
-        # Test the neural network
+        """
+        Test the neural network.
+
+        This function tests the neural network by recording training time.
+
+        Args:
+            data (object): Testing data for the neural network.
+        """
         self.start_time = time.time()
         self.train(data)
         self.TrainingTime = time.time() - self.start_time
         self.verify()
 
     def simpleBenchmark(self, data):
-        # Run a simple benchmark and print results
+        """
+        Run a simple benchmark and print results.
+
+        This function performs a benchmark test and prints the training time, learning rate, number of epoch, and accuracy.
+
+        Args:
+            data (object): Data for the benchmark test.
+        """
         self.test(data)
         print("Training time (Log Reg using Gradient descent):" + str(self.TrainingTime) + " seconds")
         print("Learning rate: {}\nIteration: {}".format(self.config.Learning_rate, self.config.num_epochs_training))
@@ -71,7 +98,16 @@ class NeuralNetwork:
         self.TraceConfusionMatrix()
 
     def predict(self, X):
-        # Function to predict a tumor nature
+        """
+        Predict the nature of a tumor for input data.
+
+        Args:
+            X (numpy.ndarray): Input data for prediction, with shape (num_samples, num_features).
+
+        Returns:
+            list: Predicted results for all input samples. Each result is the predicted nature of a tumor.
+                If the neural network is not trained, a message is returned.
+        """
         if(self.trained == True):
             results = []  # Store the results for all samples
 
@@ -95,10 +131,18 @@ class NeuralNetwork:
             return("Neural Network not trained")
 
     def reset(self):
+        """
+        Reset the neural network by initializing weights and arrays.
+        """
         self.set_random_weights()
         self.reset_array()
     
     def stochastic_gradient_descent(self):
+        """
+        Perform stochastic gradient descent to train the neural network.
+
+        This method updates the network's weights using SGD over a specified number of epochs.
+        """
         for epoch in range(self.config.num_epochs_training):
             for sample in range(self.data.SizeofTrain):
                 # Loop for multiple hiden layer
@@ -159,8 +203,15 @@ class NeuralNetwork:
         return
 
     def batch_gradient_descent(self):
+        """
+        Perform batch gradient descent training.
+
+        This function trains the neural network using batch gradient descent.
+
+        """
         for epoch in range(self.config.num_epochs_training):
             for sample in range(self.data.SizeofTrain):
+                # Forward pass
                 for node in range(self.config.num_hidden_neurons_layer):
                     self.preActiv_Hp[0][node] = np.dot(self.data.Xtr[sample, :], self.Weights_Input[:, node])
                     self.postActiv_Hp[0][node] = self.activationfunction(self.preActiv_Hp[0][node], self.config.Type_activation_function)
@@ -173,15 +224,15 @@ class NeuralNetwork:
                 self.preActivation_O = np.dot(self.postActiv_Hp[-1], self.Weights_Hiden)
                 self.postActivation_O = self.activationfunction(self.preActivation_O, self.config.Type_activation_function)
 
+                # Calculate loss and gradients
                 self.FE = self.lossfunction(self.postActivation_O, self.data.ytr[sample], self.config.Type_loss_function)
 
                 for H_node in range(self.config.num_hidden_neurons_layer):
                     self.s_error = self.FE * self.activationfunctionp(self.preActivation_O, self.config.Type_activation_function)
                     gradient_HtoD = self.s_error * self.postActiv_Hp[-1][H_node]
 
-                    # Before last hidden
+                    # Backpropagation
                     if (self.config.num_hidden_layers > 1):
-                        # Before last hidden
                         for I_node in range(self.config.num_hidden_neurons_layer):
                             input_value = self.postActiv_Hp[-2][I_node]
                             gradient_Itod = self.s_error * self.Weights_Hiden[H_node] * self.activationfunctionp(
@@ -197,7 +248,7 @@ class NeuralNetwork:
                     self.Update_Hiden_Batch[H_node] += gradient_HtoD
 
                 if (self.config.num_hidden_layers > 1):
-                    # Middle hiddens
+                    # Backpropagation for middle hidden layers
                     for HidenLayer in range(self.config.num_hidden_layers - 3, -1, -1):
                         for H_node in range(self.config.num_hidden_neurons_layer):
                             for I_node in range(self.config.num_hidden_neurons_layer):
@@ -206,13 +257,14 @@ class NeuralNetwork:
                                 self.gradient_Itod = np.dot(self.s_errorp[HidenLayer + 1],self.WeightsHidenp[HidenLayer + 1][H_node]) * self.s_errorp[HidenLayer][H_node]
                                 self.Update_Hiden_Batchp[HidenLayer][I_node, H_node] += self.gradient_Itod
 
-                        # First hidden
+                        # Backpropagation for the first hidden layer
                     for H_node in range(self.config.num_hidden_neurons_layer):
                         for I_node in range(self.data.X.shape[1]):
                             self.input_value = self.data.Xtr[sample, I_node]
                             self.gradient_Itod = np.dot(self.s_errorp[0], self.WeightsHidenp[0][H_node]) * self.input_value
                             self.Update_Input_Batch[I_node, H_node] += self.gradient_Itod
 
+            # Update weights
             self.WeightsHidenp -= self.config.Learning_rate * (self.Update_Hiden_Batchp / float(self.data.SizeofTrain))
             self.Weights_Input -= self.config.Learning_rate * (self.Update_Input_Batch / float(self.data.SizeofTrain))
             self.Weights_Hiden -= self.config.Learning_rate * (self.Update_Hiden_Batch / float(self.data.SizeofTrain))
@@ -225,9 +277,16 @@ class NeuralNetwork:
         return
 
     def mini_batch_gradient_descent(self):
+        """
+        Perform mini-batch gradient descent training.
+
+        This function trains the neural network using mini-batch gradient descent.
+
+        """
         self.batch = 0
         for epoch in range(self.config.num_epochs_training):
             for sample in range(self.data.SizeofTrain):
+                # Forward pass
                 for node in range(self.config.num_hidden_neurons_layer):
                     self.preActiv_Hp[0][node] = np.dot(self.data.Xtr[sample, :], self.Weights_Input[:, node])
                     self.postActiv_Hp[0][node] = self.activationfunction(self.preActiv_Hp[0][node], self.config.Type_activation_function)
@@ -240,15 +299,15 @@ class NeuralNetwork:
                 preActivation_O = np.dot(self.postActiv_Hp[-1], self.Weights_Hiden)  # + Bias_Output)
                 postActivation_O = self.activationfunction(preActivation_O, self.config.Type_activation_function)
 
+                # Calculate loss and gradients
                 self.FE = self.lossfunction(postActivation_O, self.data.ytr[sample], self.config.Type_loss_function)
 
                 for H_node in range(self.config.num_hidden_neurons_layer):
                     self.s_error = self.FE * self.activationfunctionp(preActivation_O, self.config.Type_activation_function)
                     self.gradient_HtoD = self.s_error * self.postActiv_Hp[-1][H_node]
 
-                    # Before last hidden
+                    # Backpropagation
                     if (self.config.num_hidden_layers > 1):
-                        # Before last hidden
                         for I_node in range(self.config.num_hidden_neurons_layer):
                             input_value = self.postActiv_Hp[-2][I_node]
                             gradient_Itod = self.s_error * self.Weights_Hiden[H_node] * self.activationfunctionp(self.preActiv_Hp[-1][H_node], self.config.Type_activation_function) * input_value
@@ -263,7 +322,7 @@ class NeuralNetwork:
                     self.Update_Hiden_Batch[H_node] += self.gradient_HtoD
 
                 if (self.config.num_hidden_layers > 1):
-                    # Middle hiddens
+                    # Backpropagation for middle hidden layers
                     for HidenLayer in range(self.config.num_hidden_layers - 3, -1, -1):
                         for H_node in range(self.config.num_hidden_neurons_layer):
                             for I_node in range(self.config.num_hidden_neurons_layer):
@@ -272,7 +331,7 @@ class NeuralNetwork:
                                 self.gradient_Itod = np.dot(self.s_errorp[HidenLayer + 1],self.WeightsHidenp[HidenLayer + 1][H_node]) * self.s_errorp[HidenLayer][H_node]
                                 self.Update_Hiden_Batchp[HidenLayer][I_node, H_node] += gradient_Itod
 
-                        # First hidden
+                        # Backpropagation for the first hidden layer
                     for H_node in range(self.config.num_hidden_neurons_layer):
                         for I_node in range(self.data.X.shape[1]):
                             input_value = self.data.Xtr[sample, I_node]
@@ -280,6 +339,8 @@ class NeuralNetwork:
                             self.Update_Input_Batch[I_node, H_node] += gradient_Itod
 
                 self.batch += 1
+
+                # Update weights at the end of a mini-batch
                 if (self.batch >= self.config.Batch_size):
                     self.Weights_Input -= self.config.Learning_rate * (self.Update_Input_Batch / float(self.config.Batch_size))
                     self.Weights_Hiden -= self.config.Learning_rate * (self.Update_Hiden_Batch / float(self.config.Batch_size))
@@ -288,12 +349,18 @@ class NeuralNetwork:
                     self.Update_Hiden_Batch = np.zeros(self.config.num_hidden_neurons_layer)
                     self.Update_Hiden_Batchp = self.Update_Hiden_BatchpCopy.copy()
                     self.batch = 0
+
             if (self.config.Learning_rate_schedule == ("True")):
                 self.config.Learning_rate = self.config.Learning_rate * (1.0 / (1.0 + self.config.Decay * epoch))
         return
 
     def verify(self):
-        # Function to verify the neural network
+        """
+        Verify the trained neural network.
+
+        This function verifies the trained neural network on a test dataset and stores the results.
+
+        """
         for sample in range(self.data.X.shape[0]-self.data.SizeofTrain):
             for node in range(self.config.num_hidden_neurons_layer):
                 self.preActiv_Hp[0][node] = np.dot(self.data.Xt[sample, :], self.Weights_Input[:, node])
@@ -310,7 +377,12 @@ class NeuralNetwork:
             self.FE2[sample] = postActivation_O
 
     def reset_array(self):
-        # Function to reset arrays
+        """
+        Reset arrays used in the neural network.
+
+        This function initializes and resets arrays used for storing intermediate values during training and testing.
+
+        """
         self.preActiv_Hp = np.empty(self.config.num_hidden_layers)
         self.preActiv_Hp = np.array(self.preActiv_Hp, dtype=object)
         self.postActiv_Hp = np.empty(self.config.num_hidden_layers)
@@ -326,17 +398,40 @@ class NeuralNetwork:
             self.s_errorp[i] = np.zeros(self.config.num_hidden_neurons_layer)
 
     def lossfunction(self, y, r, o):
+        """
+        Calculate the loss based on the specified loss function type.
+
+        Args:
+            y (float): Predicted output.
+            r (float): Actual output.
+            o (int): Loss function type.
+
+        Returns:
+            float: Loss value.
+
+        """
         if(o == 1):
-            loss = y - r #Classic error
+            loss = y - r # Classic Error
         if(o == 2):
-            loss = (y - r)**2 #Squared Error
+            loss = (y - r)**2 # Squared Error
         if(o == 3):
-            loss = ((y - r)**2)/2.0 #Variation of Squarred Error
+            loss = ((y - r)**2)/2.0 # Variation of Squarred Error
         if(o == 4):
-            loss = abs(y - r) #Absolute error
+            loss = abs(y - r) # Absolute Error
         return(loss)
 
     def activationfunction(self, Z, x):
+        """
+        Calculate the activation function based on the specified activation function type.
+
+        Args:
+            Z (float): Input value.
+            x (int): Activation function type.
+
+        Returns:
+            float: Activation function output.
+
+        """
         if(x == 1):
             act = self.sigmoid(Z)
         if(x == 2):
@@ -346,6 +441,17 @@ class NeuralNetwork:
         return act
 
     def activationfunctionp(self, Z, x):
+        """
+        Calculate the derivative of the activation function based on the specified activation function type.
+
+        Args:
+            Z (float): Input value.
+            x (int): Activation function type.
+
+        Returns:
+            float: Derivative of the activation function.
+
+        """
         if(x == 1):
             actp = self.sigmoidp(Z)
         if(x == 2):
@@ -356,10 +462,30 @@ class NeuralNetwork:
 
     #ReLU
     def ReLU(self, Z):
+        """
+        Rectified Linear Unit (ReLU) activation function.
+
+        Args:
+            Z (float): Input value.
+
+        Returns:
+            float: ReLU activation output.
+
+        """
         act = max(0, Z)
         return act
 
     def ReLUp(self, Z):
+        """
+        Derivative of the ReLU activation function.
+
+        Args:
+            Z (float): Input value.
+
+        Returns:
+            float: Derivative of ReLU.
+
+        """
         actp = 0
         if(Z > 0):
             actp = 1
@@ -367,19 +493,55 @@ class NeuralNetwork:
 
     #Sigmoid function
     def sigmoid(self, Z):
+        """
+        Sigmoid activation function.
+
+        Args:
+            Z (float): Input value.
+
+        Returns:
+            float: Sigmoid activation output.
+
+        """
         sig = (1.0/(1.0 + np.exp(-Z)))
         return sig
     
     def sigmoidp(self, Z):
+        """
+        Derivative of the sigmoid activation function.
+
+        Args:
+            Z (float): Input value.
+
+        Returns:
+            float: Derivative of sigmoid.
+
+        """
         sigp = self.sigmoid(Z)*(1.0-self.sigmoid(Z))
         return sigp
 
     #Hyperbolic tangent
     def hyperbolictangentp(self, Z):
+        """
+        Derivative of the hyperbolic tangent activation function.
+
+        Args:
+            Z (float): Input value.
+
+        Returns:
+            float: Derivative of hyperbolic tangent.
+
+        """
         htp = 1.0 - math.tanh(Z)**2.0
         return htp
 
     def TraceConfusionMatrix(self):
+        """
+        Calculate and print the confusion matrix, precision, and recall.
+
+        This function computes the confusion matrix, precision, and recall based on the predicted and actual labels.
+
+        """
         TP = 0
         TN = 0
         FP = 0
@@ -417,6 +579,14 @@ class NeuralNetwork:
         print("Recall= ", self.R)
 
     def benchmark(self, index, data):
+        """
+        Run a benchmark based on the specified index.
+
+        Args:
+            index (int): Benchmark index.
+            data: Data for benchmarking.
+
+        """
         if(index == 1):
             self.TraceGraph1(data)
         elif(index == 2):
@@ -429,7 +599,13 @@ class NeuralNetwork:
             self.TraceGraph5(data)
 
     def TraceGraph1(self, data):
-        #Test the different type of gradient descent
+        """
+        Test and compare different types of gradient descent algorithms.
+
+        Args:
+            data: Data used for testing.
+
+        """
         num_iterations = 3  # Number of gradient descent types to test
         AccL = []
         TrainingTimeL = []
@@ -457,7 +633,13 @@ class NeuralNetwork:
         plt.show()
 
     def TraceGraph2(self, data):
-        #Test different learning rate
+        """
+        Test and compare different learning rates.
+
+        Args:
+            data: Data used for testing.
+
+        """
         objective = pd.DataFrame({'Objective': data.yt})
 
         FELVL = []
@@ -489,7 +671,13 @@ class NeuralNetwork:
         plt.show()
 
     def TraceGraph3(self, data):
-        #Test different number of epoch for learning rate and learning rate with decay
+        """
+        Test and compare different numbers of epochs for learning rate and learning rate with decay.
+
+        Args:
+            data: Data used for testing.
+
+        """
         objective = pd.DataFrame({'Objective': data.yt})
 
         FELVE = []
@@ -571,7 +759,13 @@ class NeuralNetwork:
 
   
     def TraceGraph4(self, data):
-        # Test the different activation function
+        """
+        Test and compare different activation functions.
+
+        Args:
+            data: Data used for testing.
+
+        """
         objective = pd.DataFrame({'Objective': data.yt})
         self.config.Learning_rate_schedule = False
         self.config.Learning_rate = 0.3
@@ -620,7 +814,13 @@ class NeuralNetwork:
 
 
     def TraceGraph5(self, data):
-        #Evolution with 1 and 2 hiden layer of the accuracy and training time
+        """
+        Test the evolution of accuracy and training time with 1 and 2 hidden layers.
+
+        Args:
+            data: Data used for testing.
+
+        """
         self.config.Type_activation_function = 1
         objective = pd.DataFrame({'Objective': data.yt})
 
